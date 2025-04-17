@@ -2,8 +2,7 @@ name: Auto Pull Request
 
 on:
   push:
-    branches-ignore:
-      - main
+    branches: ["**"]
 
 jobs:
   create-auto-pr:
