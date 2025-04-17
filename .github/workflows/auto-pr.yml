@@ -1,0 +1,24 @@
+name: Auto Pull Request
+
+on:
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  create-auto-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: "Auto PR: Merge ${{ github.ref_name }} to main"
+          commit-message: "Auto PR created from ${{ github.ref_name }}"
+          base: main
+          branch: ${{ github.ref_name }}
+          draft: false
