@@ -26,3 +26,5 @@ jobs:
           branch: ${{ github.ref_name }}
           draft: false
           create-when-empty: true
+          author: GitHub <noreply@github.com>
+          committer: GitHub <noreply@github.com>
