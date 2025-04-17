@@ -16,15 +16,6 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.ref_name }}
 
-      - name: DEBUG - Cek branch dan status
-        run: |
-          echo "Current branch: ${{ github.ref_name }}"
-          git status
-          git branch -a
-          git log --oneline -n 5
-          echo "Remote info:"
-          git remote -v
-
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
