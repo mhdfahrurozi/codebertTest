@@ -1,35 +1,46 @@
-name: demo to create automatic PR
+name: Universal Auto PR to main
 
 on:
   push:
-    branches:
-      - dev
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  updateAuthor:
+  autoPullRequest:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Get commit metadata
-        uses: rlespinasse/git-commit-data-action@v1.x
+      - name: Setup git config
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Write author to file
-        run: echo "${{ env.GIT_COMMIT_AUTHOR_NAME }}" > AUTHOR
+      - name: Determine PR branch
+        id: pr_branch
+        run: |
+          CURRENT_BRANCH="${GITHUB_REF##*/}"
 
-      - name: Create Pull Request
+          if [ "$CURRENT_BRANCH" = "main" ]; then
+            # Buat branch baru dari main
+            TIMESTAMP=$(date +%s)
+            NEW_BRANCH="main-auto-pr-${TIMESTAMP}"
+            git checkout -b "$NEW_BRANCH"
+            git push origin "$NEW_BRANCH"
+            echo "branch_name=$NEW_BRANCH" >> $GITHUB_OUTPUT
+          else
+            echo "branch_name=$CURRENT_BRANCH" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request to main
         uses: peter-evans/create-pull-request@v3
         with:
-          branch: auto-pr-branch
+          branch: ${{ steps.pr_branch.outputs.branch_name }}
           base: main
-          title: "Auto PR from dev"
-          body: "Auto-generated PR with updated AUTHOR"
-          committer: ${{ env.GIT_COMMIT_AUTHOR_NAME }} <${{ env.GIT_COMMIT_AUTHOR_EMAIL }}>
-          author: ${{ env.GIT_COMMIT_AUTHOR_NAME }} <${{ env.GIT_COMMIT_AUTHOR_EMAIL }}>
+          title: "Auto PR from ${{ steps.pr_branch.outputs.branch_name }}"
+          body: "Automated PR to merge changes from ${{ steps.pr_branch.outputs.branch_name }} to main"
           token: ${{ secrets.GITHUB_TOKEN }}
-          delete-branch: true
+          draft: false
