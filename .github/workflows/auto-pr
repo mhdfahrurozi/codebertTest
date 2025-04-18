@@ -19,9 +19,9 @@ jobs:
       - name: Create Pull Request to main
         uses: peter-evans/create-pull-request@v3
         with:
-          branch: ${{ github.ref_name }}  # Gunakan nama branch yang sedang di-push
-          base: main                      # PR akan dibuat ke branch main
+          token: ${{ secrets.GITHUB_TOKEN }}
           title: "Auto PR from ${{ github.ref_name }}"
           body: "This is an automated pull request from branch ${{ github.ref_name }} to main."
-          token: ${{ secrets.GITHUB_TOKEN }}
-          draft: false                    # PR langsung ready, bukan draft
+          base: main
+          head: ${{ github.ref_name }}
+          draft: false
