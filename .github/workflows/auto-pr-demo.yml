@@ -3,8 +3,8 @@ name: demo to create automatic PR
 on:
   push:
     branches:
-      - main
-      
+      - dev
+
 permissions:
   contents: write
   pull-requests: write
@@ -13,24 +13,23 @@ jobs:
   updateAuthor:
     runs-on: ubuntu-latest
     steps:
-    - name: checking out code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: extract git commit data
-      uses: rlespinasse/git-commit-data-action@v1.x
+      - name: Get commit metadata
+        uses: rlespinasse/git-commit-data-action@v1.x
 
-    - name: update author information
-      run: echo ${{ env.GIT_COMMIT_AUTHOR_NAME }} > AUTHOR
-      
-    - name: Raise PR
-      uses: peter-evans/create-pull-request@v3
-      with:
-        branch: "auto-pr-branch"
-        base: main
-        title: "demo for auto pr"
-        committer: ${{ env.GIT_COMMIT_AUTHOR_NAME }} <${{ env.GIT_COMMIT_AUTHOR_EMAIL }}>
-        author: ${{ env.GIT_COMMIT_AUTHOR_NAME }} <${{ env.GIT_COMMIT_AUTHOR_EMAIL }}>
-        body:
-          This is to show automatic PR creation
-        token: ${{ secrets.GITHUB_TOKEN }}
-        delete-branch: true
+      - name: Write author to file
+        run: echo "${{ env.GIT_COMMIT_AUTHOR_NAME }}" > AUTHOR
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v3
+        with:
+          branch: auto-pr-branch
+          base: main
+          title: "Auto PR from dev"
+          body: "Auto-generated PR with updated AUTHOR"
+          committer: ${{ env.GIT_COMMIT_AUTHOR_NAME }} <${{ env.GIT_COMMIT_AUTHOR_EMAIL }}>
+          author: ${{ env.GIT_COMMIT_AUTHOR_NAME }} <${{ env.GIT_COMMIT_AUTHOR_EMAIL }}>
+          token: ${{ secrets.GITHUB_TOKEN }}
+          delete-branch: true
