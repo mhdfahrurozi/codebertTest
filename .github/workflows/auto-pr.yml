@@ -25,4 +25,4 @@ jobs:
             --title "Auto PR from ${{ github.ref_name }}" \
             --body "This PR was automatically created on push to ${{ github.ref_name }}"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
