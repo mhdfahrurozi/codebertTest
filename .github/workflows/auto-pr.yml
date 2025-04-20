@@ -3,25 +3,24 @@ name: Auto PR to main
 on:
   push:
     branches-ignore:
-      - main  # Jangan jalanin workflow kalau push ke main
+      - main
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  autoPullRequest:
+  auto-pull-request:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
 
+    steps:
       - name: Create Pull Request to main
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/pull-request@v5
         with:
-          branch: ${{ github.ref_name }}  # Gunakan nama branch yang sedang di-push
-          base: main                      # PR akan dibuat ke branch main
+          source: ${{ github.ref_name }}
+          target: main
           title: "Auto PR from ${{ github.ref_name }}"
           body: "This is an automated pull request from branch ${{ github.ref_name }} to main."
           token: ${{ secrets.GITHUB_TOKEN }}
-          draft: false                    # PR langsung ready, bukan draft
+          draft: false
+          allow-existing-pr: true
