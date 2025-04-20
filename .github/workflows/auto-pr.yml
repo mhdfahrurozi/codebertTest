@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Create Pull Request to main
-        uses: peter-evans/pull-request@v5
+        uses: peter-evans/pull-request@v4
         with:
           source: ${{ github.ref_name }}
           target: main
