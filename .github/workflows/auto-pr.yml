@@ -14,13 +14,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Create Pull Request to main
-        uses: peter-evans/pull-request@v4
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Create pull request
+        uses: peter-evans/pull-request@v3
         with:
           source: ${{ github.ref_name }}
           target: main
           title: "Auto PR from ${{ github.ref_name }}"
-          body: "This is an automated pull request from branch ${{ github.ref_name }} to main."
+          body: "This PR was created automatically after push to ${{ github.ref_name }}."
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: false
-          allow-existing-pr: true
