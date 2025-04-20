@@ -17,11 +17,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up GitHub CLI
-        uses: cli/cli-action@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create Pull Request to main
+      - name: Create PR using GitHub CLI
         run: |
-          gh pr create --base main --head ${{ github.ref_name }} --title "Auto PR from ${{ github.ref_name }}" --body "This is an automated pull request from branch ${{ github.ref_name }} to main." --draft=false
+          gh pr create \
+            --base main \
+            --head ${{ github.ref_name }} \
+            --title "Auto PR from ${{ github.ref_name }}" \
+            --body "This PR was automatically created on push to ${{ github.ref_name }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
