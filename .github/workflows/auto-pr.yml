@@ -26,11 +26,6 @@ jobs:
         run: |
           python codebert_analysis.py > codebert-analysis.log
 
-      - name: Login GitHub CLI
-        run: echo "${{ secrets.GH_PAT }}" | gh auth login --with-token
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
-
       - name: Buat Pull Request Otomatis
         run: |
           PR_BODY=$(cat codebert-analysis.log)
