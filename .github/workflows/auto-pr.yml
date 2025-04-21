@@ -1,4 +1,4 @@
-name: Auto PR to main
+name: Auto PR with CodeBERT Analysis (Tahap 1)
 
 on:
   push:
@@ -10,19 +10,34 @@ permissions:
   pull-requests: write
 
 jobs:
-  auto-pull-request:
+  analyze-and-pr:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Create PR using GitHub CLI
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Jalankan Analisis Keamanan (Dummy)
         run: |
+          python codebert_analysis.py > codebert-analysis.log
+
+      - name: Login GitHub CLI
+        run: echo "${{ secrets.GH_PAT }}" | gh auth login --with-token
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+
+      - name: Buat Pull Request Otomatis
+        run: |
+          PR_BODY=$(cat codebert-analysis.log)
           gh pr create \
             --base main \
             --head ${{ github.ref_name }} \
             --title "Auto PR from ${{ github.ref_name }}" \
-            --body "This PR was automatically created on push to ${{ github.ref_name }}"
+            --body "$PR_BODY"
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
