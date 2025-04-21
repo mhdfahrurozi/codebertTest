@@ -22,17 +22,27 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Jalankan Analisis Keamanan (Dummy)
+      - name: Jalankan Analisis Keamanan
+        run: python codebert_analysis.py > codebert-analysis.log
+
+      - name: Potong hasil analisis (max 100 baris)
         run: |
-          python codebert_analysis.py > codebert-analysis.log
+          echo "📊 Code Security Report (terpotong, lihat log lengkap di file)" > short-analysis.log
+          head -n 100 codebert-analysis.log >> short-analysis.log
 
       - name: Buat Pull Request Otomatis
         run: |
-          PR_BODY=$(cat codebert-analysis.log)
           gh pr create \
             --base main \
             --head ${{ github.ref_name }} \
             --title "Auto PR from ${{ github.ref_name }}" \
-            --body-file codebert-analysis.log
+            --body-file short-analysis.log
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
+
+      - name: Upload Full Log sebagai Artefak
+        uses: actions/upload-artifact@v3
+        with:
+          name: codebert-full-log
+          path: codebert-analysis.log
+
