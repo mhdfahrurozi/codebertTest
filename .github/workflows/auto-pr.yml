@@ -27,8 +27,9 @@ jobs:
 
       - name: Potong hasil analisis (max 100 baris)
         run: |
-          echo "📊 Code Security Report (terpotong, lihat log lengkap di file)" > short-analysis.log
-          head -n 100 codebert-analysis.log >> short-analysis.log
+          echo "📊 Ringkasan hasil analisis CodeBERT (log lengkap di artefak GitHub Action)." > short-analysis.log
+          head -n 20 codebert-analysis.log >> short-analysis.log
+
 
       - name: Buat Pull Request Otomatis
         run: |
