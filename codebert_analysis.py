@@ -1,32 +1,29 @@
 from transformers import RobertaTokenizer, RobertaModel
 import torch
 import os
-import subprocess
+import sys
 
 print("📊 Code Security Report (CodeBERT AI - Branch: main)\n")
 
-def get_changed_files():
-    try:
-        files = subprocess.check_output(
-            ["git", "diff", "--name-only", "HEAD^", "HEAD"],
-            encoding="utf-8"
-        ).splitlines()
-        return files
-    except Exception as e:
-        print(f"⚠️ Gagal mengambil file yang berubah di commit: {e}")
-        return []
+# Mengambil daftar file yang diubah (melalui parameter yang diteruskan ke skrip)
+changed_files = sys.argv[1:]  # File yang akan dianalisis diteruskan sebagai argumen
 
-changed_files = get_changed_files()
+if not changed_files:
+    print("✅ Tidak ada file yang diubah untuk dianalisis.")
+    sys.exit()
 
 print(">> File yang berubah di branch main:")
 print("\n".join(changed_files))
 
+# Filter ekstensi file yang relevan untuk analisis
 target_exts = [".js", ".php", ".html", ".css"]
 target_files = [f for f in changed_files if any(f.endswith(ext) for ext in target_exts)]
 
+# Inisialisasi tokenizer dan model dari CodeBERT
 tokenizer = RobertaTokenizer.from_pretrained("microsoft/codebert-base")
 model = RobertaModel.from_pretrained("microsoft/codebert-base")
 
+# Fungsi untuk menganalisis kode snippet
 def analyze_code_snippet(code, file_path, line_num):
     inputs = tokenizer(code, return_tensors="pt", truncation=True, max_length=512)
     with torch.no_grad():
@@ -48,6 +45,7 @@ def analyze_code_snippet(code, file_path, line_num):
     print(f"Baris: {line_num}")
     print(f"Kode: {code.strip()}\n")
 
+# Analisis file yang relevan
 for file_path in target_files:
     try:
         with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
