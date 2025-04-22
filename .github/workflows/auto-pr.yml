@@ -2,7 +2,7 @@ name: Check Changed Files
 
 on:
   push:
-    branches-ignore:
+    branches:
       - main
 
 jobs:
@@ -14,7 +14,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Get list of changed files
+      # Step 2: Fetch the latest changes from the remote repository
+      - name: Fetch latest changes
+        run: git fetch origin
+
+      # Step 3: Get list of changed files
       - name: Get Changed Files
         id: get_files
         run: |
@@ -24,7 +28,7 @@ jobs:
           echo "$files"
           echo "::set-output name=changed_files::$files"
 
-      # Step 3: Display changed files in the log
+      # Step 4: Display changed files in the log
       - name: Display Changed Files
         run: |
           echo "Files that have changed or were added in the latest commit:"
