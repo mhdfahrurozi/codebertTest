@@ -14,23 +14,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Step 2: Fetch all branches
       - name: Fetch all branches
         run: git fetch origin main
 
+      # Step 3: Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
           
+      # Step 4: Install dependencies
       - name: Install dependencies
         run: |
           pip install transformers torch
-          
-      - name: Jalankan Analisis Keamanan
-        run: python codebert_analysis.py > codebert-analysis.log
+
+      # Step 5: Get list of changed files
+      - name: Get changed or added files
+        id: changed_files
+        run: |
+          # Mendapatkan file yang diubah atau ditambahkan sejak bercabang dari origin/main
+          changed_files=$(git diff --name-status $(git merge-base origin/main HEAD) HEAD | grep -E '^(A|M)' | cut -f2)
+          echo "Changed files: $changed_files"
+          echo "changed_files=$changed_files" >> $GITHUB_ENV
+
+      # Step 6: Run Python analysis on the changed files
+      - name: Run CodeBERT Analysis on Changed Files
+        run: |
+          # Loop untuk menjalankan analisis hanya pada file yang diubah atau ditambahkan
+          python codebert_analysis.py ${{ env.changed_files }} > codebert-analysis.log
 
       - name: Potong hasil analisis (max 20 baris)
         run: |
