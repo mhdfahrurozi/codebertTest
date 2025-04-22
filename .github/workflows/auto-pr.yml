@@ -1,72 +1,31 @@
-name: Auto PR with CodeBERT Analysis 
+name: Check Changed Files
 
 on:
   push:
-    branches-ignore:
+    branches:
       - main
 
-permissions:
-  contents: write
-  pull-requests: write
-
 jobs:
-  analyze-and-pr:
+  check-changed-files:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout code
+      # Step 1: Checkout the code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Fetch all branches
-      - name: Fetch all branches
-        run: git fetch origin main
-
-      # Step 3: Set up Python
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-          
-      # Step 4: Install dependencies
-      - name: Install dependencies
+      # Step 2: Get list of changed files
+      - name: Get Changed Files
+        id: get_files
         run: |
-          pip install transformers torch
+          # Get the list of files changed in the latest commit
+          echo "Changed files:"
+          files=$(git diff --name-only origin/main...HEAD)
+          echo "$files"
+          echo "::set-output name=changed_files::$files"
 
-      # Step 5: Get list of changed files
-      - name: Get changed or added files
-        id: changed_files
+      # Step 3: Display changed files in the log
+      - name: Display Changed Files
         run: |
-          # Mendapatkan file yang diubah atau ditambahkan sejak bercabang dari origin/main
-          changed_files=$(git diff --name-status $(git merge-base origin/main HEAD) HEAD | grep -E '^(A|M)' | cut -f2)
-          echo "Changed files: $changed_files"
-          echo "changed_files=$changed_files" >> $GITHUB_ENV
-
-      # Step 6: Run Python analysis on the changed files
-      - name: Run CodeBERT Analysis on Changed Files
-        run: |
-          # Loop untuk menjalankan analisis hanya pada file yang diubah atau ditambahkan
-          python codebert_analysis.py ${{ env.changed_files }} > codebert-analysis.log
-
-      - name: Potong hasil analisis (max 20 baris)
-        run: |
-          echo "📊 Ringkasan hasil analisis CodeBERT (log lengkap di artefak GitHub Action)." > short-analysis.log
-          head -n 20 codebert-analysis.log >> short-analysis.log
-
-
-      - name: Buat Pull Request Otomatis
-        run: |
-          gh pr create \
-            --base main \
-            --head ${{ github.ref_name }} \
-            --title "Auto PR from ${{ github.ref_name }}" \
-            --body-file short-analysis.log
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
-
-      - name: Upload Full Log sebagai Artefak
-        uses: actions/upload-artifact@v4.6.2
-        with:
-          name: codebert-full-log
-          path: codebert-analysis.log
-
+          echo "Files that have changed or were added in the latest commit:"
+          echo "${{ steps.get_files.outputs.changed_files }}"
