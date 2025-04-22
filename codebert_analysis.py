@@ -3,37 +3,27 @@ import torch
 import os
 import subprocess
 
-print("📊 Code Security Report (CodeBERT AI - Smart File Detection)\n")
+print("📊 Code Security Report (CodeBERT AI - Branch: main)\n")
 
 def get_changed_files():
     try:
-        return subprocess.check_output(
-            ["git", "diff", "--name-only", "origin/main...HEAD"],
+        files = subprocess.check_output(
+            ["git", "diff", "--name-only", "HEAD^", "HEAD"],
             encoding="utf-8"
         ).splitlines()
-    except Exception:
-        print("⚠️ Gagal diff origin/main...HEAD, coba fallback ke HEAD")
-        try:
-            return subprocess.check_output(
-                ["git", "show", "--pretty=", "--name-only", "HEAD"],
-                encoding="utf-8"
-            ).splitlines()
-        except Exception as e:
-            print(f"🚨 Gagal ambil file dari HEAD: {e}")
-            return []
-
+        return files
+    except Exception as e:
+        print(f"⚠️ Gagal mengambil file yang berubah di commit: {e}")
+        return []
 
 changed_files = get_changed_files()
 
-# 🔍 Debug: tampilkan file yang akan dianalisis
-print(">> Changed files:")
+print(">> File yang berubah di branch main:")
 print("\n".join(changed_files))
 
-# Filter hanya file target (JS, PHP, HTML, CSS)
 target_exts = [".js", ".php", ".html", ".css"]
 target_files = [f for f in changed_files if any(f.endswith(ext) for ext in target_exts)]
 
-# Load CodeBERT
 tokenizer = RobertaTokenizer.from_pretrained("microsoft/codebert-base")
 model = RobertaModel.from_pretrained("microsoft/codebert-base")
 
@@ -58,7 +48,6 @@ def analyze_code_snippet(code, file_path, line_num):
     print(f"Baris: {line_num}")
     print(f"Kode: {code.strip()}\n")
 
-# Analisis
 for file_path in target_files:
     try:
         with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
@@ -69,4 +58,4 @@ for file_path in target_files:
         print(f"⚠️ Gagal analisa {file_path}: {e}")
 
 if not target_files:
-    print("✅ Tidak ada file yang relevan untuk dianalisis.")
+    print("✅ Tidak ada file relevan yang berubah di branch main.")
