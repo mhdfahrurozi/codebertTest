@@ -7,17 +7,28 @@ import subprocess
 
 print("📊 Code Security Report (CodeBERT AI - ONLY MODIFIED FILES)\n")
 
-# Step 1: Cari file yang berubah
-try:
-    changed_files = subprocess.check_output(
-        ["git", "diff", "--name-only", "origin/main...HEAD"],
-        encoding="utf-8"
-    ).splitlines()
-except Exception as e:
-    print(f"⚠️ Gagal mendapatkan file yang berubah: {e}")
-    changed_files = []
+# Step 1: Dapatkan file yang berubah
+def get_changed_files():
+    try:
+        # Coba bandingkan dengan origin/main
+        return subprocess.check_output(
+            ["git", "diff", "--name-only", "origin/main...HEAD"],
+            encoding="utf-8"
+        ).splitlines()
+    except Exception:
+        print("⚠️ Gagal diff dengan origin/main, fallback ke HEAD^")
+        try:
+            return subprocess.check_output(
+                ["git", "diff", "--name-only", "HEAD^"],
+                encoding="utf-8"
+            ).splitlines()
+        except Exception as e:
+            print(f"⚠️ Gagal mengambil file yang berubah: {e}")
+            return []
 
-# Step 2: Filter hanya file yang berisi kode yang ingin dianalisis
+changed_files = get_changed_files()
+
+# Step 2: Filter file yang ingin dianalisis
 target_exts = [".js", ".php", ".html", ".css"]
 target_files = [f for f in changed_files if any(f.endswith(ext) for ext in target_exts)]
 
@@ -25,7 +36,7 @@ target_files = [f for f in changed_files if any(f.endswith(ext) for ext in targe
 tokenizer = RobertaTokenizer.from_pretrained("microsoft/codebert-base")
 model = RobertaModel.from_pretrained("microsoft/codebert-base")
 
-# Step 4: Analisis file
+# Step 4: Analisis baris kode
 def analyze_code_snippet(code, file_path, line_num):
     inputs = tokenizer(code, return_tensors="pt", truncation=True, max_length=512)
     with torch.no_grad():
@@ -47,7 +58,7 @@ def analyze_code_snippet(code, file_path, line_num):
     print(f"Baris: {line_num}")
     print(f"Kode: {code.strip()}\n")
 
-# Step 5: Loop dan analisis
+# Step 5: Jalankan analisis hanya pada file yang berubah
 for file_path in target_files:
     try:
         with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
