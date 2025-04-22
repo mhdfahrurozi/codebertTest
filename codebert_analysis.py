@@ -12,22 +12,15 @@ def get_changed_files():
             encoding="utf-8"
         ).splitlines()
     except Exception:
-        print("⚠️ Gagal diff origin/main...HEAD, coba fallback ke HEAD^")
+        print("⚠️ Gagal diff origin/main...HEAD, fallback ke semua commit dalam push.")
         try:
             return subprocess.check_output(
-                ["git", "diff", "--name-only", "HEAD^"],
+                ["git", "diff", "--name-only", "HEAD~5"],
                 encoding="utf-8"
             ).splitlines()
-        except Exception:
-            print("⚠️ Tidak bisa diff HEAD^, fallback ke semua file tracked git")
-            try:
-                return subprocess.check_output(
-                    ["git", "ls-files"],
-                    encoding="utf-8"
-                ).splitlines()
-            except Exception as e:
-                print(f"🚨 Gagal semua metode diff: {e}")
-                return []
+        except Exception as e:
+            print(f"🚨 Gagal ambil file: {e}")
+            return []
 
 changed_files = get_changed_files()
 
