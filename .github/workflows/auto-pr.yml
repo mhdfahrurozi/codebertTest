@@ -35,18 +35,16 @@ jobs:
 
       # Step 5: Get list of changed files
       - name: Get changed or added files
-        id: changed_files
         run: |
-          # Mendapatkan file yang diubah atau ditambahkan sejak bercabang dari origin/main
-          changed_files=$(git diff --name-only origin/main)
-          echo "Changed files: $changed_files"
-          echo "changed_files=$changed_files" >> $GITHUB_ENV
+          git diff --name-only origin/main > changed_files.txt
+          echo "📄 File yang berubah:"
+          cat changed_files.txt
 
       # Step 6: Run Python analysis on the changed files
       - name: Run CodeBERT Analysis on Changed Files
         run: |
           # Loop untuk menjalankan analisis hanya pada file yang diubah atau ditambahkan
-          python codebert_analysis.py ${{ env.changed_files }} > codebert-analysis.log
+          python codebert_analysis.py changed_files.txt | tee codebert-analysis.log
 
       - name: Potong hasil analisis (max 20 baris)
         run: |
