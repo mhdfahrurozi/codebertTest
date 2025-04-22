@@ -12,17 +12,22 @@ def get_changed_files():
             encoding="utf-8"
         ).splitlines()
     except Exception:
-        print("⚠️ Gagal diff origin/main...HEAD, fallback ke semua commit dalam push.")
+        print("⚠️ Gagal diff origin/main...HEAD, coba fallback ke HEAD")
         try:
             return subprocess.check_output(
-                ["git", "diff", "--name-only", "HEAD~5"],
+                ["git", "show", "--pretty=", "--name-only", "HEAD"],
                 encoding="utf-8"
             ).splitlines()
         except Exception as e:
-            print(f"🚨 Gagal ambil file: {e}")
+            print(f"🚨 Gagal ambil file dari HEAD: {e}")
             return []
 
+
 changed_files = get_changed_files()
+
+# 🔍 Debug: tampilkan file yang akan dianalisis
+print(">> Changed files:")
+print("\n".join(changed_files))
 
 # Filter hanya file target (JS, PHP, HTML, CSS)
 target_exts = [".js", ".php", ".html", ".css"]
