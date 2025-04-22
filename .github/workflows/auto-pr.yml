@@ -22,9 +22,9 @@ jobs:
       - name: Get Changed Files
         id: get_files
         run: |
-          # Get the list of files changed in the latest commit
+          # Get the list of files changed between the current commit and origin/main
           echo "Changed files:"
-          files=$(git diff --name-only origin/main...HEAD)
+          files=$(git diff --name-only origin/main)
           echo "$files"
           echo "::set-output name=changed_files::$files"
 
