@@ -1,7 +1,8 @@
-from transformers import RobertaTokenizer, RobertaModel
-import torch
-import sys
 import os
+import sys
+import torch
+import torch.nn.functional as F
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
 print("📊 Code Security Report (CodeBERT AI - Branch: main)\n")
 
@@ -26,43 +27,61 @@ print(">> File yang berubah:")
 print("\n".join(changed_files))
 
 # Filter ekstensi file yang relevan
-target_exts = [".js", ".php", ".html", ".css"]
+target_exts = [".js", ".php", ".html", ".css", ".py"]
 target_files = [f for f in changed_files if any(f.endswith(ext) for ext in target_exts)]
 
-# Load tokenizer dan model
-tokenizer = RobertaTokenizer.from_pretrained("microsoft/codebert-base")
-model = RobertaModel.from_pretrained("microsoft/codebert-base")
+if not target_files:
+    print("✅ Tidak ada file relevan untuk dianalisis.")
+    sys.exit(0)
+
+# Load model dari HuggingFace
+model_name = "fahru1712/codebert-vuln-web-finetune" 
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForSequenceClassification.from_pretrained(model_name)
+
+# Mapping prediksi
+labels_map = {
+    0: "Aman",
+    1: "Medium",
+    2: "High",
+    3: "Critical",
+}
+
+# Warnanya
+color_map = {
+    "Critical": "\033[91m",
+    "High": "\033[93m",
+    "Medium": "\033[93m",
+    "Aman": "\033[92m",
+}
+reset_color = "\033[0m"
 
 def analyze_code_snippet(code, file_path, line_num):
     inputs = tokenizer(code, return_tensors="pt", truncation=True, max_length=512)
     with torch.no_grad():
         outputs = model(**inputs)
-    cls_embedding = outputs.last_hidden_state[:, 0, :]
-    score = torch.sigmoid(cls_embedding.mean()).item()
 
-    if score > 0.75:
-        risk = "Tinggi"
-    elif score > 0.5:
-        risk = "Sedang"
-    elif score > 0.3:
-        risk = "Rendah"
-    else:
-        risk = "Aman"
+    logits = outputs.logits
+    probs = F.softmax(logits, dim=-1)
+    pred_class = torch.argmax(probs, dim=-1).item()
+    risk = labels_map.get(pred_class, "Unknown")
+    color = color_map.get(risk, "\033[0m")
+    icon = "❗" if risk != "Aman" else "✅"
 
-    print(f"{'❗' if risk != 'Aman' else '✅'} Tingkat: {risk}")
-    print(f"File: {file_path}")
-    print(f"Baris: {line_num}")
-    print(f"Kode: {code.strip()}\n")
+    print(f"{color}{icon} Tingkat: {risk}{reset_color}")
+    print(f"{color}📄 File: {file_path}{reset_color}")
+    print(f"{color}🔢 Baris: {line_num}{reset_color}")
+    print(f"{color}🔎 Kode: {code.strip()}{reset_color}\n")
 
-# Analisis file yang relevan
-for file_path in target_files:
-    try:
-        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-            for i, line in enumerate(f.readlines(), start=1):
-                if len(line.strip()) > 10:
-                    analyze_code_snippet(line.strip(), file_path, i)
-    except Exception as e:
-        print(f"⚠️ Gagal analisa {file_path}: {e}")
+def scan_files(file_list):
+    for filepath in file_list:
+        if os.path.exists(filepath):
+            with open(filepath, "r", encoding="utf-8", errors="ignore") as file:
+                for line_num, line in enumerate(file, 1):
+                    if line.strip():
+                        analyze_code_snippet(line, filepath, line_num)
+        else:
+            print(f"⚠️ File tidak ditemukan: {filepath}")
 
-if not target_files:
-    print("✅ Tidak ada file relevan yang berubah.")
+# Mulai scan file-file yang berubah
+scan_files(target_files)
