@@ -1,0 +1,74 @@
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import torch
+import sys
+import os
+
+print("📊 Code Security Report (CodeBERT AI - Fine-tuned for Vulnerability Severity)\n")
+
+# Cek argumen input file
+if len(sys.argv) < 2:
+    print("❌ Tidak ada file yang diteruskan ke skrip.")
+    sys.exit(1)
+
+input_file = sys.argv[1]
+try:
+    with open(input_file, "r") as f:
+        changed_files = [line.strip() for line in f if line.strip()]
+except Exception as e:
+    print(f"❌ Gagal membaca daftar file: {e}")
+    sys.exit(1)
+
+if not changed_files:
+    print("✅ Tidak ada file yang diubah untuk dianalisis.")
+    sys.exit(0)
+
+print(">> File yang berubah:")
+print("\n".join(changed_files))
+
+# Filter ekstensi yang relevan untuk dianalisis
+target_exts = [".js", ".php", ".html", ".css"]
+target_files = [f for f in changed_files if any(f.endswith(ext) for ext in target_exts)]
+
+# Load tokenizer dan model dari repo model hasil fine-tuning
+model_name = "fahru1712/codebert-vuln-web-finetune"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForSequenceClassification.from_pretrained(model_name)
+model.eval()
+
+# Pemetaan label severity (pastikan sesuai urutan label saat fine-tuning)
+label_map = {
+    0: "Low",
+    1: "Medium",
+    2: "High",
+    3: "Critical"
+}
+
+def analyze_code_snippet(code, file_path, line_num):
+    inputs = tokenizer(code, return_tensors="pt", truncation=True, max_length=512)
+    with torch.no_grad():
+        outputs = model(**inputs)
+        logits = outputs.logits
+        probs = torch.softmax(logits, dim=1)
+        pred_label = torch.argmax(probs, dim=1).item()
+        confidence = probs[0][pred_label].item()
+
+    severity = label_map.get(pred_label, "Unknown")
+    icon = "❗" if severity != "Low" else "✅"
+
+    print(f"{icon} Severity: {severity} (confidence: {confidence:.2f})")
+    print(f"File: {file_path}")
+    print(f"Line: {line_num}")
+    print(f"Code: {code.strip()}\n")
+
+# Analisis tiap baris dalam file target
+for file_path in target_files:
+    try:
+        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            for i, line in enumerate(f.readlines(), start=1):
+                if len(line.strip()) > 10:
+                    analyze_code_snippet(line.strip(), file_path, i)
+    except Exception as e:
+        print(f"⚠️ Gagal analisa {file_path}: {e}")
+
+if not target_files:
+    print("✅ Tidak ada file relevan yang berubah.")
