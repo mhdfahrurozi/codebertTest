@@ -30,17 +30,17 @@ target_exts = [".js", ".php", ".html", ".css"]
 target_files = [f for f in changed_files if any(f.endswith(ext) for ext in target_exts)]
 
 # Load tokenizer dan model dari repo model hasil fine-tuning
-model_name = "fahru1712/codebert-vuln-web-finetune"
+model_name = "fahru1712/codebert-models"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForSequenceClassification.from_pretrained(model_name)
 model.eval()
 
 # Pemetaan label severity (pastikan sesuai urutan label saat fine-tuning)
 label_map = {
-    0: "Low",
-    1: "Medium",
-    2: "High",
-    3: "Critical"
+    0: "Critical",
+    1: "High",
+    2: "Low",
+    3: "Medium"
 }
 
 def analyze_code_snippet(code, file_path, line_num):
