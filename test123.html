@@ -1,0 +1,5 @@
+<!-- XSS Vulnerable Snippet -->
+<form action="/submit" method="POST">
+  <input type="text" name="username">
+  <script>document.write(location.href)</script>
+</form>
