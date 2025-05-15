@@ -5,7 +5,7 @@ import os
 
 print("📊 Code Security Report (CodeBERT AI - Fine-tuned for Vulnerability Severity)\n")
 
-# Cek argumen input file
+# Ambil file yang berubah
 if len(sys.argv) < 2:
     print("❌ Tidak ada file yang diteruskan ke skrip.")
     sys.exit(1)
@@ -25,22 +25,29 @@ if not changed_files:
 print(">> File yang berubah:")
 print("\n".join(changed_files))
 
-# Filter ekstensi yang relevan untuk dianalisis
-target_exts = [".js", ".php", ".html", ".css"]
+# Filter hanya file dengan ekstensi tertentu
+ext_language_map = {
+    ".php": "PHP",
+    ".html": "HTML",
+    ".js": "JavaScript",
+    ".css": "CSS"
+}
+target_exts = list(ext_language_map.keys())
 target_files = [f for f in changed_files if any(f.endswith(ext) for ext in target_exts)]
 
-# Load tokenizer dan model dari repo model hasil fine-tuning
-model_name = "fahru1712/codebert-models"
+# Load model & tokenizer dari Hugging Face Hub
+model_name = "fahru1712/codebert-severity"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForSequenceClassification.from_pretrained(model_name)
 model.eval()
 
-# Pemetaan label severity (pastikan sesuai urutan label saat fine-tuning)
+# Label mapping sesuai saat training
 label_map = {
     0: "Critical",
     1: "High",
     2: "Low",
-    3: "Medium"
+    3: "Medium",
+    4: "None"
 }
 
 def analyze_code_snippet(code, file_path, line_num):
@@ -53,14 +60,19 @@ def analyze_code_snippet(code, file_path, line_num):
         confidence = probs[0][pred_label].item()
 
     severity = label_map.get(pred_label, "Unknown")
-    icon = "❗" if severity != "Low" else "✅"
+    if severity == "None":
+        return
 
-    print(f"{icon} Severity: {severity} (confidence: {confidence:.2f})")
-    print(f"File: {file_path}")
-    print(f"Line: {line_num}")
-    print(f"Code: {code.strip()}\n")
+    ext = os.path.splitext(file_path)[1]
+    language = ext_language_map.get(ext, "Unknown")
 
-# Analisis tiap baris dalam file target
+    print(f"- Language: {language}")
+    print(f"- Code: {code.strip()}")
+    print(f"- Severity: {severity} ({confidence:.2f})")
+    print(f"- File: {file_path}")
+    print(f"- Line: {line_num}\n")
+
+# Proses setiap baris kode
 for file_path in target_files:
     try:
         with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
