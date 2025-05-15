@@ -73,12 +73,18 @@ def analyze_code_snippet(code, file_path, line_num):
     print(f"- Line: {line_num}\n")
 
 # Proses setiap baris kode
+WINDOW_SIZE = 5  # atau bisa kamu ubah jadi 3-7 untuk eksperimen
+
 for file_path in target_files:
     try:
         with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-            for i, line in enumerate(f.readlines(), start=1):
-                if len(line.strip()) > 10:
-                    analyze_code_snippet(line.strip(), file_path, i)
+            lines = [line.strip() for line in f.readlines() if len(line.strip()) > 0]
+
+        for i in range(len(lines) - WINDOW_SIZE + 1):
+            snippet = "\n".join(lines[i:i+WINDOW_SIZE])
+            start_line = i + 1
+            analyze_code_snippet(snippet, file_path, start_line)
+
     except Exception as e:
         print(f"⚠️ Gagal analisa {file_path}: {e}")
 
