@@ -37,7 +37,7 @@ jobs:
 
       - name: Run CodeBERT Analysis
         run: |
-          python codebert-analysis.py changed_files.txt
+          python codebert_analysis.py changed_files.txt
           echo "REPORT_FILENAME=codebert-report.log" >> $GITHUB_ENV
 
       - name: Extract PR Summary
