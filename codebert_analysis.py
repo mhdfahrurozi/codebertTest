@@ -7,15 +7,12 @@ from transformers import AutoTokenizer, AutoModel, AutoConfig, PreTrainedModel
 from huggingface_hub import hf_hub_download
 
 # --- Setup Logging ---
-def setup_logger():
-    class Logger:
-        def __init__(self):
-            self.summary = []
-            self.detailed = []
-    
-    return Logger()
+class Logger:
+    def __init__(self):
+        self.summary = []
+        self.detailed = []
 
-logger = setup_logger()
+logger = Logger()
 
 # --- Load Changed Files ---
 def load_changed_files(input_file):
@@ -32,7 +29,6 @@ def setup_model():
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     config = AutoConfig.from_pretrained(model_id)
     
-    # Load label maps
     severity_map_path = hf_hub_download(model_id, "severity_label_map.json")
     vuln_map_path = hf_hub_download(model_id, "vuln_label_map.json")
     
@@ -92,15 +88,15 @@ def analyze_file(filepath, model, model_config):
         return
 
     file_results = []
-    for i, line in enumerate(lines):
+    for line_num, line in enumerate(lines, 1):  # Start from line 1
         code = line.strip()
         if not code or is_ignorable_line(code, filepath):
             continue
 
-        result = analyze_line(code, model, model_config)
+        result = analyze_line(code, model, model_config, line_num)  # Pass line_num
         if result:
             file_results.append(result)
-            logger.detailed.append(format_detailed_result(filepath, i+1, result, code))
+            logger.detailed.append(format_detailed_result(filepath, line_num, result, code))
 
     if file_results:
         logger.summary.append(f"🔍 {filepath} ({len(lines)} baris)")
@@ -109,7 +105,7 @@ def analyze_file(filepath, model, model_config):
         logger.summary.append("")
 
 # --- Line Analysis ---
-def analyze_line(code, model, model_config):
+def analyze_line(code, model, model_config, line_num):  # Added line_num parameter
     inputs = model_config['tokenizer'](code, return_tensors="pt", padding="max_length", 
                                      truncation=True, max_length=256).to(model.device)
     with torch.no_grad():
@@ -122,7 +118,7 @@ def analyze_line(code, model, model_config):
 
     if severity.lower() != "none":
         return {
-            'line': i + 1,
+            'line': line_num,  # Use passed line_num
             'severity': severity,
             'vulnerability': vulnerability
         }
