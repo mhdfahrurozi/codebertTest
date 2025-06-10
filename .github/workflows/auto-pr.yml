@@ -31,7 +31,7 @@ jobs:
       # Step 4: Install dependencies
       - name: Install dependencies
         run: |
-          pip install transformers torch
+          pip install transformers torch huggingface_hub
 
       # Step 5: Get list of changed files
       - name: Get changed or added files
@@ -40,18 +40,26 @@ jobs:
           echo "📄 File yang berubah:"
           cat changed_files.txt
 
-      # Step 6: Run Python analysis on the changed files
+      # Step 6: Run CodeBERT Analysis on the changed files
       - name: Run CodeBERT Analysis on Changed Files
         run: |
-          # Loop untuk menjalankan analisis hanya pada file yang diubah atau ditambahkan
           python codebert_analysis.py changed_files.txt | tee codebert-analysis.log
 
+      # Step 7: Trim and format short summary
       - name: Potong hasil analisis (max 20 baris)
         run: |
           echo "📊 Ringkasan hasil analisis CodeBERT (log lengkap di artefak GitHub Action)." > short-analysis.log
           head -n 20 codebert-analysis.log >> short-analysis.log
 
+      # Step 8: Tambahkan timestamp ke log file
+      - name: Tambahkan timestamp ke nama file log
+        run: |
+          TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
+          NEW_LOG="codebert-analysis-$TIMESTAMP.txt"
+          mv codebert-analysis.log "$NEW_LOG"
+          echo "LOG_FILENAME=$NEW_LOG" >> $GITHUB_ENV
 
+      # Step 9: Buat Pull Request Otomatis
       - name: Buat Pull Request Otomatis
         run: |
           gh pr create \
@@ -62,9 +70,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
 
+      # Step 10: Upload Full Log sebagai Artefak (dalam bentuk .txt, tidak di-zip)
       - name: Upload Full Log sebagai Artefak
         uses: actions/upload-artifact@v4.6.2
         with:
           name: codebert-full-log
-          path: codebert-analysis.log
-
+          path: ${{ env.LOG_FILENAME }}
