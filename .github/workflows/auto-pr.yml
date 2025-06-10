@@ -1,4 +1,4 @@
-name: Auto PR with CodeBERT Analysis 
+name: Auto PR with CodeBERT Analysis
 
 on:
   push:
@@ -14,65 +14,50 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Fetch all branches
       - name: Fetch latest changes
         run: git fetch origin
 
-      # Step 3: Set up Python
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
           
-      # Step 4: Install dependencies
       - name: Install dependencies
         run: |
           pip install transformers torch huggingface_hub
 
-      # Step 5: Get list of changed files
-      - name: Get changed or added files
+      - name: Get changed files
         run: |
           git diff --name-only origin/main > changed_files.txt
-          echo "📄 File yang berubah:"
+          echo "📄 Changed files:"
           cat changed_files.txt
 
-      # Step 6: Run CodeBERT Analysis on the changed files
-      - name: Run CodeBERT Analysis on Changed Files
+      - name: Run CodeBERT Analysis
         run: |
-          python codebert_analysis.py changed_files.txt | tee codebert-analysis.log
+          python codebert-analysis.py changed_files.txt
+          echo "REPORT_FILENAME=codebert-report.log" >> $GITHUB_ENV
 
-      # Step 7: Trim and format short summary
-      - name: Potong hasil analisis (max 20 baris)
+      - name: Extract PR Summary
         run: |
-          echo "📊 Ringkasan hasil analisis CodeBERT (log lengkap di artefak GitHub Action)." > short-analysis.log
-          head -n 20 codebert-analysis.log >> short-analysis.log
+          # Ambil bagian SUMMARY saja untuk PR comment
+          sed -n '/\[\[SUMMARY]]/,/\[\[DETAILED FINDINGS]]/p' $REPORT_FILENAME | head -n -2 > pr-summary.log
+          echo "Laporan lengkap tersedia di artifact" >> pr-summary.log
 
-      # Step 8: Tambahkan timestamp ke log file
-      - name: Tambahkan timestamp ke nama file log
-        run: |
-          TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
-          NEW_LOG="codebert-analysis-$TIMESTAMP.txt"
-          mv codebert-analysis.log "$NEW_LOG"
-          echo "LOG_FILENAME=$NEW_LOG" >> $GITHUB_ENV
-
-      # Step 9: Buat Pull Request Otomatis
-      - name: Buat Pull Request Otomatis
+      - name: Create Pull Request
         run: |
           gh pr create \
             --base main \
             --head ${{ github.ref_name }} \
-            --title "Auto PR from ${{ github.ref_name }}" \
-            --body-file short-analysis.log
+            --title "CodeBERT Analysis: ${{ github.ref_name }}" \
+            --body-file pr-summary.log
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
 
-      # Step 10: Upload Full Log sebagai Artefak (dalam bentuk .txt, tidak di-zip)
-      - name: Upload Full Log sebagai Artefak
-        uses: actions/upload-artifact@v4.6.2
+      - name: Upload Full Report
+        uses: actions/upload-artifact@v4
         with:
-          name: codebert-full-log
-          path: ${{ env.LOG_FILENAME }}
+          name: codebert-security-report
+          path: ${{ env.REPORT_FILENAME }}
