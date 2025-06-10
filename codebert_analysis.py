@@ -1,7 +1,10 @@
-from transformers import AutoTokenizer, AutoModel
-import torch
-import sys
 import os
+import sys
+import json
+import torch
+import torch.nn as nn
+from transformers import AutoTokenizer, AutoModel, AutoConfig, PreTrainedModel
+from huggingface_hub import hf_hub_download
 
 print("📊 Code Security Report (CodeBERT MTL: Severity + Vulnerability Type)\n")
 
@@ -35,57 +38,98 @@ if not target_files:
     sys.exit(0)
 
 # --- Load MTL Model ---
-model_name = "fahru1712/codebert-vuln-web-finetune"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModel.from_pretrained(model_name)
+model_id = "fahru1712/codebert-mtl"
+
+tokenizer = AutoTokenizer.from_pretrained(model_id)
+config = AutoConfig.from_pretrained(model_id)
+
+severity_map_path = hf_hub_download(model_id, "severity_label_map.json")
+vuln_map_path = hf_hub_download(model_id, "vuln_label_map.json")
+
+with open(severity_map_path) as f:
+    severity_label_map = json.load(f)
+with open(vuln_map_path) as f:
+    vuln_label_map = json.load(f)
+
+inv_severity_map = {v: k for k, v in severity_label_map.items()}
+inv_vuln_map = {v: k for k, v in vuln_label_map.items()}
+
+num_severity = len(severity_label_map)
+num_vuln = len(vuln_label_map)
+
+class CodeBERTMultiTask(PreTrainedModel):
+    def __init__(self, config, num_severity, num_vuln):
+        super().__init__(config)
+        self.codebert = AutoModel.from_config(config)
+        self.dropout = nn.Dropout(0.1)
+        self.classifier_severity = nn.Linear(config.hidden_size, num_severity)
+        self.classifier_vuln = nn.Linear(config.hidden_size, num_vuln)
+
+    def forward(self, input_ids, attention_mask=None):
+        outputs = self.codebert(input_ids=input_ids, attention_mask=attention_mask)
+        pooled_output = self.dropout(outputs.last_hidden_state[:, 0])
+        logits_severity = self.classifier_severity(pooled_output)
+        logits_vuln = self.classifier_vuln(pooled_output)
+        return {
+            "logits_severity": logits_severity,
+            "logits_vuln": logits_vuln
+        }
+
+model = CodeBERTMultiTask.from_pretrained(
+    model_id,
+    config=config,
+    num_severity=num_severity,
+    num_vuln=num_vuln
+)
 model.eval()
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model.to(device)
 
-# Label mapping sesuai saat fine-tuning
-severity_map = {0: "Critical", 1: "High", 2: "Medium", 3: "Low", 4: "None"}
-vuln_map = {
-    0: "XSS", 1: "SQL Injection", 2: "Hardcoded Credential", 3: "CSRF",
-    4: "Path Traversal", 5: "Command Injection", 6: "Insecure Redirect",
-    7: "Open Redirect", 8: "LFI", 9: "RFI", 10: "Clickjacking", 11: "Other"
-}
+# --- HTML Line Filter ---
+def is_ignorable_html_line(line):
+    IGNORED_TAGS = [
+        "<!doctype", "<html", "</html>", "<head", "</head>", "<meta", "<title", "</title>",
+        "<body", "</body>", "<footer", "</footer>", "<h1", "<h2", "<h3", "<p", "</p>", "<br",
+        "<form", "</form>", "<div", "</div>", "<section", "</section>", "<!--", "-->", "</script>", "</style>"
+    ]
+    line = line.strip().lower()
+    return any(line.startswith(tag) for tag in IGNORED_TAGS) or line.startswith("<!--") or line.startswith("-->")
 
-def analyze_code_snippet(code, file_path, line_num):
-    inputs = tokenizer(code, return_tensors="pt", truncation=True, max_length=512)
-
-    with torch.no_grad():
-        outputs = model(**inputs)
-        logits_severity = outputs.logits_severity
-        logits_vuln = outputs.logits_vuln
-
-        probs_sev = torch.softmax(logits_severity, dim=1)
-        probs_vuln = torch.softmax(logits_vuln, dim=1)
-
-        pred_sev_id = torch.argmax(probs_sev, dim=1).item()
-        pred_vuln_id = torch.argmax(probs_vuln, dim=1).item()
-
-        severity = severity_map.get(pred_sev_id, "Unknown")
-        vuln_type = vuln_map.get(pred_vuln_id, "Unknown")
-
-        if severity == "None":
-            return
-
-        print(f"❗ Severity: {severity}")
-        print(f"Jenis kerentanan: {vuln_type}")
-        print(f"File: {file_path}")
-        print(f"Line: {line_num}")
-        print(f"Code: {code.strip()}\n")
-
-# --- Analyze files line-by-line (sliding window) ---
-WINDOW_SIZE = 5
-
-for file_path in target_files:
+# --- Analyze Per Line ---
+def analyze_file_by_line(filepath):
     try:
-        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-            lines = [line.rstrip() for line in f.readlines() if line.strip()]
-
-        for i in range(len(lines) - WINDOW_SIZE + 1):
-            snippet = "\n".join(lines[i:i + WINDOW_SIZE])
-            start_line = i + 1
-            analyze_code_snippet(snippet, file_path, start_line)
-
+        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+            lines = f.readlines()
     except Exception as e:
-        print(f"⚠️ Gagal analisa {file_path}: {e}")
+        print(f"⚠️ Gagal membaca {filepath}: {e}")
+        return
+
+    printed_header = False
+    for i, line in enumerate(lines):
+        code = line.strip()
+        if not code or is_ignorable_html_line(code):
+            continue
+
+        inputs = tokenizer(code, return_tensors="pt", padding="max_length", truncation=True, max_length=256).to(device)
+        with torch.no_grad():
+            outputs = model(**inputs)
+            sev_idx = torch.argmax(outputs["logits_severity"], dim=1).item()
+            vul_idx = torch.argmax(outputs["logits_vuln"], dim=1).item()
+
+        severity = inv_severity_map.get(sev_idx, "Unknown")
+        vulnerability = inv_vuln_map.get(vul_idx, "Unknown")
+
+        if severity.lower() != "none":
+            if not printed_header:
+                print(f"🔍 Analisis File: {filepath} ({len(lines)} baris)")
+                printed_header = True
+
+            print(f"🔹 Line #{i + 1}")
+            print(f"Severity      : {severity}")
+            print(f"Vulnerability : {vulnerability}")
+            print(f"Code Preview  : {code}")
+            print("--------------------------------------------------")
+
+# --- Jalankan Analisis ---
+for file_path in target_files:
+    analyze_file_by_line(file_path)
