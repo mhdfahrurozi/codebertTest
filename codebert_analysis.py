@@ -104,7 +104,7 @@ def analyze_file_by_line(filepath):
         print(f"⚠️ Gagal membaca {filepath}: {e}")
         return
 
-    printed_header = False
+    file_results = []
     for i, line in enumerate(lines):
         code = line.strip()
         if not code or is_ignorable_html_line(code):
@@ -120,15 +120,18 @@ def analyze_file_by_line(filepath):
         vulnerability = inv_vuln_map.get(vul_idx, "Unknown")
 
         if severity.lower() != "none":
-            if not printed_header:
-                print(f"🔍 Analisis File: {filepath} ({len(lines)} baris)")
-                printed_header = True
+            file_results.append({
+                "line": i + 1,
+                "severity": severity,
+                "vulnerability": vulnerability,
+                "code": code
+            })
 
-            print(f"🔹 Line #{i + 1}")
-            print(f"Severity      : {severity}")
-            print(f"Vulnerability : {vulnerability}")
-            print(f"Code Preview  : {code}")
-            print("--------------------------------------------------")
+    if file_results:
+        print(f"🔍 {filepath} ({len(lines)} baris)")
+        for result in file_results:
+            print(f"- Line #{result['line']}, Severity: {result['severity']}, Vulnerability: {result['vulnerability']}")
+        print()  # Add empty line between files
 
 # --- Jalankan Analisis ---
 for file_path in target_files:
