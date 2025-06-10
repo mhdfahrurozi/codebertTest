@@ -173,7 +173,7 @@ if __name__ == "__main__":
         sys.exit(0)
 
     target_exts = ['.php', '.html', '.js']
-    target_files = [f for f in changed_files if any(f.endswith(ext) for ext in target_exts]
+    target_files = [f for f in changed_files if any(f.endswith(ext) for ext in target_exts)]
     
     if not target_files:
         print("✅ Tidak ada file yang relevan")
