@@ -6,57 +6,51 @@ import torch.nn as nn
 from transformers import AutoTokenizer, AutoModel, AutoConfig, PreTrainedModel
 from huggingface_hub import hf_hub_download
 
-print("📊 Code Security Report (CodeBERT MTL: Severity + Vulnerability Type)\n")
+# --- Setup Logging ---
+def setup_logger():
+    class Logger:
+        def __init__(self):
+            self.summary = []
+            self.detailed = []
+    
+    return Logger()
+
+logger = setup_logger()
 
 # --- Load Changed Files ---
-if len(sys.argv) < 2:
-    print("❌ Tidak ada file yang diteruskan ke skrip.")
-    sys.exit(1)
+def load_changed_files(input_file):
+    try:
+        with open(input_file, "r") as f:
+            return [line.strip() for line in f if line.strip()]
+    except Exception as e:
+        print(f"❌ Gagal membaca daftar file: {e}")
+        sys.exit(1)
 
-input_file = sys.argv[1]
-try:
-    with open(input_file, "r") as f:
-        changed_files = [line.strip() for line in f if line.strip()]
-except Exception as e:
-    print(f"❌ Gagal membaca daftar file: {e}")
-    sys.exit(1)
+# --- Model Setup ---
+def setup_model():
+    model_id = "fahru1712/codebert-mtl"
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    config = AutoConfig.from_pretrained(model_id)
+    
+    # Load label maps
+    severity_map_path = hf_hub_download(model_id, "severity_label_map.json")
+    vuln_map_path = hf_hub_download(model_id, "vuln_label_map.json")
+    
+    with open(severity_map_path) as f:
+        severity_label_map = json.load(f)
+    with open(vuln_map_path) as f:
+        vuln_label_map = json.load(f)
+    
+    return {
+        'tokenizer': tokenizer,
+        'config': config,
+        'inv_severity_map': {v: k for k, v in severity_label_map.items()},
+        'inv_vuln_map': {v: k for k, v in vuln_label_map.items()},
+        'num_severity': len(severity_label_map),
+        'num_vuln': len(vuln_label_map)
+    }
 
-if not changed_files:
-    print("✅ Tidak ada file yang diubah untuk dianalisis.")
-    sys.exit(0)
-
-ext_language_map = {
-    ".php": "PHP",
-    ".html": "HTML",
-    ".js": "JavaScript"
-}
-target_exts = list(ext_language_map.keys())
-target_files = [f for f in changed_files if any(f.endswith(ext) for ext in target_exts)]
-
-if not target_files:
-    print("✅ Tidak ada file relevan yang berubah.")
-    sys.exit(0)
-
-# --- Load MTL Model ---
-model_id = "fahru1712/codebert-mtl"
-
-tokenizer = AutoTokenizer.from_pretrained(model_id)
-config = AutoConfig.from_pretrained(model_id)
-
-severity_map_path = hf_hub_download(model_id, "severity_label_map.json")
-vuln_map_path = hf_hub_download(model_id, "vuln_label_map.json")
-
-with open(severity_map_path) as f:
-    severity_label_map = json.load(f)
-with open(vuln_map_path) as f:
-    vuln_label_map = json.load(f)
-
-inv_severity_map = {v: k for k, v in severity_label_map.items()}
-inv_vuln_map = {v: k for k, v in vuln_label_map.items()}
-
-num_severity = len(severity_label_map)
-num_vuln = len(vuln_label_map)
-
+# --- Model Definition ---
 class CodeBERTMultiTask(PreTrainedModel):
     def __init__(self, config, num_severity, num_vuln):
         super().__init__(config)
@@ -68,71 +62,123 @@ class CodeBERTMultiTask(PreTrainedModel):
     def forward(self, input_ids, attention_mask=None):
         outputs = self.codebert(input_ids=input_ids, attention_mask=attention_mask)
         pooled_output = self.dropout(outputs.last_hidden_state[:, 0])
-        logits_severity = self.classifier_severity(pooled_output)
-        logits_vuln = self.classifier_vuln(pooled_output)
         return {
-            "logits_severity": logits_severity,
-            "logits_vuln": logits_vuln
+            "logits_severity": self.classifier_severity(pooled_output),
+            "logits_vuln": self.classifier_vuln(pooled_output)
         }
 
-model = CodeBERTMultiTask.from_pretrained(
-    model_id,
-    config=config,
-    num_severity=num_severity,
-    num_vuln=num_vuln
-)
-model.eval()
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model.to(device)
+# --- Analysis Core ---
+def analyze_files(target_files, model_config):
+    model = CodeBERTMultiTask.from_pretrained(
+        "fahru1712/codebert-mtl",
+        config=model_config['config'],
+        num_severity=model_config['num_severity'],
+        num_vuln=model_config['num_vuln']
+    )
+    model.eval()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
 
-# --- HTML Line Filter ---
-def is_ignorable_html_line(line):
-    IGNORED_TAGS = [
-        "<!doctype", "<html", "</html>", "<head", "</head>", "<meta", "<title", "</title>",
-        "<body", "</body>", "<footer", "</footer>", "<h1", "<h2", "<h3", "<p", "</p>", "<br",
-        "<form", "</form>", "<div", "</div>", "<section", "</section>", "<!--", "-->", "</script>", "</style>"
-    ]
-    line = line.strip().lower()
-    return any(line.startswith(tag) for tag in IGNORED_TAGS) or line.startswith("<!--") or line.startswith("-->")
+    for file_path in target_files:
+        analyze_file(file_path, model, model_config)
 
-# --- Analyze Per Line ---
-def analyze_file_by_line(filepath):
+# --- File Analysis ---
+def analyze_file(filepath, model, model_config):
     try:
         with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
             lines = f.readlines()
     except Exception as e:
-        print(f"⚠️ Gagal membaca {filepath}: {e}")
+        logger.detailed.append(f"⚠️ Gagal membaca {filepath}: {e}")
         return
 
     file_results = []
     for i, line in enumerate(lines):
         code = line.strip()
-        if not code or is_ignorable_html_line(code):
+        if not code or is_ignorable_line(code, filepath):
             continue
 
-        inputs = tokenizer(code, return_tensors="pt", padding="max_length", truncation=True, max_length=256).to(device)
-        with torch.no_grad():
-            outputs = model(**inputs)
-            sev_idx = torch.argmax(outputs["logits_severity"], dim=1).item()
-            vul_idx = torch.argmax(outputs["logits_vuln"], dim=1).item()
-
-        severity = inv_severity_map.get(sev_idx, "Unknown")
-        vulnerability = inv_vuln_map.get(vul_idx, "Unknown")
-
-        if severity.lower() != "none":
-            file_results.append({
-                "line": i + 1,
-                "severity": severity,
-                "vulnerability": vulnerability,
-                "code": code
-            })
+        result = analyze_line(code, model, model_config)
+        if result:
+            file_results.append(result)
+            logger.detailed.append(format_detailed_result(filepath, i+1, result, code))
 
     if file_results:
-        print(f"🔍 {filepath} ({len(lines)} baris)")
-        for result in file_results:
-            print(f"- Line #{result['line']}, Severity: {result['severity']}, Vulnerability: {result['vulnerability']}")
-        print()  # Add empty line between files
+        logger.summary.append(f"🔍 {filepath} ({len(lines)} baris)")
+        logger.summary.extend([f"- Line #{r['line']}, Severity: {r['severity']}, Vulnerability: {r['vulnerability']}" 
+                             for r in file_results])
+        logger.summary.append("")
 
-# --- Jalankan Analisis ---
-for file_path in target_files:
-    analyze_file_by_line(file_path)
+# --- Line Analysis ---
+def analyze_line(code, model, model_config):
+    inputs = model_config['tokenizer'](code, return_tensors="pt", padding="max_length", 
+                                     truncation=True, max_length=256).to(model.device)
+    with torch.no_grad():
+        outputs = model(**inputs)
+        sev_idx = torch.argmax(outputs["logits_severity"], dim=1).item()
+        vul_idx = torch.argmax(outputs["logits_vuln"], dim=1).item()
+
+    severity = model_config['inv_severity_map'].get(sev_idx, "Unknown")
+    vulnerability = model_config['inv_vuln_map'].get(vul_idx, "Unknown")
+
+    if severity.lower() != "none":
+        return {
+            'line': i + 1,
+            'severity': severity,
+            'vulnerability': vulnerability
+        }
+    return None
+
+# --- Helper Functions ---
+def is_ignorable_line(line, filepath):
+    if filepath.endswith('.html'):
+        IGNORED_TAGS = ["<!doctype", "<html", "<head", "<meta", "<title", "<body", 
+                       "<footer", "<h1", "<h2", "<h3", "<p", "<br", "<form", 
+                       "<div", "<section", "<!--", "-->", "</"]
+        return any(line.strip().lower().startswith(tag) for tag in IGNORED_TAGS)
+    return False
+
+def format_detailed_result(filepath, line_num, result, code):
+    return (
+        f"🔍 File: {filepath} (Line {line_num})\n"
+        f"Severity      : {result['severity']}\n"
+        f"Vulnerability : {result['vulnerability']}\n"
+        f"Code Preview  : {code}\n"
+        f"{'-'*50}"
+    )
+
+def write_report():
+    with open("codebert-report.log", "w") as f:
+        f.write("="*50 + "\n")
+        f.write("🔍 CODEBERT SECURITY ANALYSIS REPORT\n")
+        f.write("="*50 + "\n\n")
+        
+        f.write("[[SUMMARY]]\n")
+        f.write("📊 Ringkasan Hasil Analisis:\n\n")
+        f.write("\n".join(logger.summary) + "\n\n")
+        
+        f.write("="*50 + "\n")
+        f.write("[[DETAILED FINDINGS]]\n")
+        f.write("📋 Detail Temuan Kerentanan:\n\n")
+        f.write("\n".join(logger.detailed))
+
+# --- Main Execution ---
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("❌ Error: Harap tentukan file input")
+        sys.exit(1)
+
+    changed_files = load_changed_files(sys.argv[1])
+    if not changed_files:
+        print("✅ Tidak ada file yang diubah")
+        sys.exit(0)
+
+    target_exts = ['.php', '.html', '.js']
+    target_files = [f for f in changed_files if any(f.endswith(ext) for ext in target_exts]
+    
+    if not target_files:
+        print("✅ Tidak ada file yang relevan")
+        sys.exit(0)
+
+    model_config = setup_model()
+    analyze_files(target_files, model_config)
+    write_report()
