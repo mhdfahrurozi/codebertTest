@@ -34,6 +34,6 @@ jobs:
         if: env.SAFE == 'true'
         run: |
           echo "🟢 Aman! Merge otomatis..."
-          gh pr merge ${{ github.event.pull_request.number }} --merge --delete-branch
+          gh pr merge "${{ github.event.pull_request.head.ref }}" --merge --delete-branch
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
