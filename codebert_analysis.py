@@ -171,15 +171,20 @@ def write_report():
         f.write("="*50 + "\n")
         f.write("🔍 CODEBERT SECURITY ANALYSIS REPORT\n")
         f.write("="*50 + "\n\n")
-        
+
         f.write("[[SUMMARY]]\n")
         f.write("📊 Ringkasan Hasil Analisis:\n\n")
-        f.write("\n".join(logger.summary) + "\n\n")
-        
+
+        if logger.summary:
+            f.write("\n".join(logger.summary) + "\n\n")
+        else:
+            f.write("✅ Tidak ditemukan kerentanan\n\n")
+
         f.write("="*50 + "\n")
         f.write("[[DETAILED FINDINGS]]\n")
         f.write("📋 Detail Temuan Kerentanan:\n\n")
-        f.write("\n".join(logger.detailed))
+        f.write("\n".join(logger.detailed) if logger.detailed else "Tidak ada temuan.")
+
 
 # --- Main Execution ---
 if __name__ == "__main__":
