@@ -2,7 +2,7 @@ name: Auto Merge PR if Safe
 
 on:
   pull_request:
-    types: [opened, labeled, synchronize, reopened]
+    types: [labeled]
     branches:
       - main
 
