@@ -202,3 +202,8 @@ if __name__ == "__main__":
     model_config = setup_model()
     analyze_files(target_files, model_config)
     write_report()
+
+    total_vuln = len(logger.detailed)
+    if total_vuln == 0:
+        with open(os.environ['GITHUB_ENV'], 'a') as f:
+            f.write("NO_VULN=true\n")
