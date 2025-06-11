@@ -87,7 +87,7 @@ jobs:
           echo "🧠 Checkout branch main dan merge dari $GITHUB_REF_NAME"
           git checkout main
           git pull origin main
-          git merge ${{ github.ref_name }}
+          git merge ${{ github.ref_name }} --allow-unrelated-histories
 
           echo "🚀 Push hasil merge ke main"
           git push origin main
