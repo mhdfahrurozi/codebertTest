@@ -137,7 +137,7 @@ def is_ignorable_line(line, filepath):
     if filepath.endswith(('.html', '.xml')):
         IGNORED_PATTERNS = [
             r"^<!doctype", r"^<\?xml", r"^<!--", r"^-->",  # markup dan komentar
-            r"^<html", r"^<head", r"^<meta", r"^<link", r"^<style", r"^<title",
+            r"^<html", r"^<head", r"^<meta", r"^<link", r"^<style", r"^<title",r"^<script", r"^</script",
             r"^<body", r"^<div", r"^<span", r"^<p", r"^<h[1-6]", r"^<br",
             r"^<footer", r"^<section", r"^<article", r"^<form", r"^<input",
             r"^</?(html|head|body|div|p|h[1-6]|section|footer|form|input|label)",
