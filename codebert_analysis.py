@@ -127,32 +127,38 @@ def analyze_line(code, model, model_config, line_num):  # Added line_num paramet
 
 
 def is_ignorable_line(line, filepath):
+    import re
+
     line = line.strip().lower()
 
     # Abaikan baris kosong
     if not line:
         return True
 
-    # Abaikan HTML/XML tag yang umum dan tidak berbahaya
-    if filepath.endswith(('.html', '.xml')):
-        IGNORED_PATTERNS = [
-            r"^<!doctype", r"^<\?xml", r"^<!--", r"^-->",  # markup dan komentar
-            r"^<html", r"^<head", r"^<meta", r"^<link", r"^<style", r"^<title",r"^<script", r"^</script",
-            r"^<body", r"^<div", r"^<span", r"^<p", r"^<h[1-6]", r"^<br",
-            r"^<footer", r"^<section", r"^<article", r"^<form", r"^<input",
-            r"^</?(html|head|body|div|p|h[1-6]|section|footer|form|input|label)",
-        ]
-        if any(re.match(pattern, line) for pattern in IGNORED_PATTERNS):
-            return True
-
-        # Abaikan baris tanpa karakter pemrograman yang mencurigakan
-        if not re.search(r"[;{}()=<>]", line) and len(line) < 100:
-            return True
-
     # Abaikan komentar di HTML, JS, dan PHP
     COMMENT_PATTERNS = [r"^\s*//", r"^\s*/\*", r"\*/", r"^\s*#", r"^\s*<!--", r"^\s*-->"]
     if any(re.match(pattern, line) for pattern in COMMENT_PATTERNS):
         return True
+
+    if filepath.endswith(('.html', '.xml')):
+        # Pola HTML tag umum
+        IGNORED_PATTERNS = [
+            r"^<!doctype", r"^<\?xml", r"^<!--", r"^-->",  # markup dan komentar
+            r"^<html", r"^<head", r"^<meta", r"^<link", r"^<style", r"^<title", r"^<script", r"^</script",
+            r"^<body", r"^<div", r"^<span", r"^<p", r"^<h[1-6]", r"^<br",
+            r"^<footer", r"^<section", r"^<article", r"^<form", r"^<input",
+            r"^</?(html|head|body|div|p|h[1-6]|section|footer|form|input|label|title|meta|link|script|style)>?",
+        ]
+        if any(re.match(pattern, line) for pattern in IGNORED_PATTERNS):
+            return True
+
+        # Tambahan: abaikan baris teks biasa tanpa simbol pemrograman atau pola mencurigakan
+        if (
+            not re.search(r"[;{}()=<>]", line) and  # tidak ada simbol kode
+            not re.search(r"(script|alert|onerror|onload|eval|document\.|window\.)", line) and  # tidak ada JS/injection
+            len(line) < 200  # batasi panjang baris
+        ):
+            return True
 
     return False
 
