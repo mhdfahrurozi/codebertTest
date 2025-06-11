@@ -64,8 +64,7 @@ jobs:
           sed -n '/\[\[SUMMARY]]/,/\[\[DETAILED FINDINGS]]/p' $REPORT_FILENAME | head -n -2 > pr-summary.log
           echo "Laporan lengkap tersedia di artifact" >> pr-summary.log
 
-      - name: Create Pull Request (jika ada kerentanan)
-        if: env.NO_VULN != 'true'
+      - name: Create Pull Request
         run: |
           gh pr create \
             --base main \
@@ -75,22 +74,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
           
-      - name: Auto-merge (jika aman)
+      - name: Tambahkan Label jika Aman
         if: env.NO_VULN == 'true'
+        run: |
+          PR_NUMBER=$(gh pr view --json number -q '.number')
+          gh pr edit $PR_NUMBER --add-label "safe-to-merge"
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
-        run: |
-          echo "⚙️ Konfigurasi git..."
-          git config user.name "github-actions"
-          git config user.email "github-actions@users.noreply.github.com"
-
-          echo "🧠 Checkout branch main dan merge dari $GITHUB_REF_NAME"
-          git checkout main
-          git pull origin main
-          git merge ${{ github.ref_name }} --allow-unrelated-histories
-
-          echo "🚀 Push hasil merge ke main"
-          git push origin main
 
       - name: Upload Full Report
         uses: actions/upload-artifact@v4
