@@ -77,19 +77,20 @@ jobs:
           
       - name: Auto-merge (jika aman)
         if: env.NO_VULN == 'true'
-        run: |
-          echo "Mencari PR untuk branch: $GITHUB_REF_NAME"
-          pr_url=$(gh pr list --state open --head "$GITHUB_REF_NAME" --json url -q '.[0].url')
-      
-          if [ -z "$pr_url" ]; then
-            echo "❌ Tidak ditemukan PR terbuka dari branch ini: $GITHUB_REF_NAME"
-            exit 1
-          fi
-      
-          echo "✅ PR ditemukan: $pr_url"
-          gh pr merge "$pr_url" --merge --admin
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          echo "⚙️ Konfigurasi git..."
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+
+          echo "🧠 Checkout branch main dan merge dari $GITHUB_REF_NAME"
+          git checkout main
+          git pull origin main
+          git merge ${{ github.ref_name }}
+
+          echo "🚀 Push hasil merge ke main"
+          git push origin main
 
       - name: Upload Full Report
         uses: actions/upload-artifact@v4
