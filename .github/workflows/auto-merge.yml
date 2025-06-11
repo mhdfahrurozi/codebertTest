@@ -1,0 +1,39 @@
+name: Auto Merge PR if Safe
+
+on:
+  pull_request:
+    types: [opened, labeled, synchronize, reopened]
+    branches:
+      - main
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  merge-if-safe:
+    if: github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check PR Label
+        id: check-label
+        run: |
+          LABELS=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
+            https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels \
+            | jq -r '.[].name')
+
+          echo "PR Labels: $LABELS"
+          if echo "$LABELS" | grep -q "safe-to-merge"; then
+            echo "SAFE=true" >> $GITHUB_ENV
+          else
+            echo "SAFE=false" >> $GITHUB_ENV
+          fi
+
+      - name: Merge PR jika aman
+        if: env.SAFE == 'true'
+        run: |
+          echo "🟢 Aman! Merge otomatis..."
+          gh pr merge ${{ github.event.pull_request.number }} --merge --delete-branch
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
