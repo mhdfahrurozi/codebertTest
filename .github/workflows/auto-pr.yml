@@ -25,7 +25,6 @@ jobs:
         with:
           python-version: '3.10'
 
-      # === Restore Cache ===
       - name: Restore pip cache
         uses: actions/cache/restore@v4
         id: pip-cache
@@ -36,16 +35,18 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+        env:
+          PIP_CACHE_DIR: ~/.cache/pip
 
-      # === Save Cache After Install ===
       - name: Save pip cache
-        uses: actions/cache/save@v4
         if: steps.pip-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-
+          
       - name: Get changed files
         run: |
           git diff --name-only origin/main > changed_files.txt
