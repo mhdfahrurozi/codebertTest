@@ -78,7 +78,7 @@ jobs:
       - name: Auto-merge (jika aman)
         if: env.NO_VULN == 'true'
         run: |
-          pr_url=$(gh pr view --json url -q .url)
+          pr_url=$(gh pr view ${{ github.head_ref }} --json url -q .url)
           echo "Auto-merging PR: $pr_url"
           gh pr merge "$pr_url" --merge --admin
         env:
