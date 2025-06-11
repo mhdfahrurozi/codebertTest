@@ -77,10 +77,11 @@ jobs:
       - name: Tambahkan Label jika Aman
         if: env.NO_VULN == 'true'
         run: |
-          PR_NUMBER=$(gh pr view --json number -q '.number')
+          PR_NUMBER=${{ github.event.pull_request.number }}
           gh pr edit $PR_NUMBER --add-label "safe-to-merge"
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
+
 
       - name: Upload Full Report
         uses: actions/upload-artifact@v4
