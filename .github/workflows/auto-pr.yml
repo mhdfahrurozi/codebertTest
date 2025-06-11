@@ -78,9 +78,16 @@ jobs:
       - name: Auto-merge (jika aman)
         if: env.NO_VULN == 'true'
         run: |
-          pr_url=$(gh pr view --repo "$GITHUB_REPOSITORY" "$GITHUB_HEAD_REF" --json url -q .url)
-          echo "Auto-merging PR: $pr_url"
-          gh pr merge "$pr_url" --merge --admin --repo "$GITHUB_REPOSITORY"
+          echo "Mencari PR untuk branch: $GITHUB_REF_NAME"
+          pr_url=$(gh pr list --state open --head "$GITHUB_REF_NAME" --json url -q '.[0].url')
+      
+          if [ -z "$pr_url" ]; then
+            echo "❌ Tidak ditemukan PR terbuka dari branch ini: $GITHUB_REF_NAME"
+            exit 1
+          fi
+      
+          echo "✅ PR ditemukan: $pr_url"
+          gh pr merge "$pr_url" --merge --admin
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
 
