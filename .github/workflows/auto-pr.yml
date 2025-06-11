@@ -25,19 +25,26 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Cache pip dependencies
-        uses: actions/cache@v4
+      # === Restore Cache ===
+      - name: Restore pip cache
+        uses: actions/cache/restore@v4
+        id: pip-cache
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
-          save-always: true 
-          
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
 
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # === Save Cache After Install ===
+      - name: Save pip cache
+        uses: actions/cache/save@v4
+        if: steps.pip-cache.outputs.cache-hit != 'true'
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
 
       - name: Get changed files
         run: |
@@ -52,7 +59,6 @@ jobs:
 
       - name: Extract PR Summary
         run: |
-          # Ambil bagian SUMMARY saja untuk PR comment
           sed -n '/\[\[SUMMARY]]/,/\[\[DETAILED FINDINGS]]/p' $REPORT_FILENAME | head -n -2 > pr-summary.log
           echo "Laporan lengkap tersedia di artifact" >> pr-summary.log
 
