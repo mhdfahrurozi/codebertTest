@@ -54,6 +54,7 @@ jobs:
           cat changed_files.txt
 
       - name: Run CodeBERT Analysis
+        id: codebert
         run: |
           python codebert_analysis.py changed_files.txt
           echo "REPORT_FILENAME=codebert-report.log" >> $GITHUB_ENV
@@ -63,13 +64,23 @@ jobs:
           sed -n '/\[\[SUMMARY]]/,/\[\[DETAILED FINDINGS]]/p' $REPORT_FILENAME | head -n -2 > pr-summary.log
           echo "Laporan lengkap tersedia di artifact" >> pr-summary.log
 
-      - name: Create Pull Request
+      - name: Create Pull Request (jika ada kerentanan)
+        if: env.NO_VULN != 'true'
         run: |
           gh pr create \
             --base main \
             --head ${{ github.ref_name }} \
             --title "CodeBERT Analysis: ${{ github.ref_name }}" \
             --body-file pr-summary.log
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          
+      - name: Auto-merge (jika aman)
+        if: env.NO_VULN == 'true'
+        run: |
+          pr_url=$(gh pr view --json url -q .url)
+          echo "Auto-merging PR: $pr_url"
+          gh pr merge "$pr_url" --merge --admin
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
 
