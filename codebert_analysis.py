@@ -135,32 +135,46 @@ def is_ignorable_line(line, filepath):
     if not line:
         return True
 
-    # Abaikan komentar di HTML, JS, dan PHP
+    # Abaikan komentar umum
     COMMENT_PATTERNS = [r"^\s*//", r"^\s*/\*", r"\*/", r"^\s*#", r"^\s*<!--", r"^\s*-->"]
     if any(re.match(pattern, line) for pattern in COMMENT_PATTERNS):
         return True
 
-    if filepath.endswith(('.html', '.xml')):
-        # Pola HTML tag umum
-        IGNORED_PATTERNS = [
-            r"^<!doctype", r"^<\?xml", r"^<!--", r"^-->",  # markup dan komentar
+    # Deteksi baris seperti HTML meskipun file-nya .php atau .js
+    looks_like_html = bool(re.match(r"^\s*</?\w+", line)) or bool(re.search(r"</?\w+>", line))
+
+    if filepath.endswith(('.html', '.xml')) or looks_like_html:
+        IGNORED_HTML_PATTERNS = [
+            r"^<!doctype", r"^<\?xml", r"^<!--", r"^-->", 
             r"^<html", r"^<head", r"^<meta", r"^<link", r"^<style", r"^<title", r"^<script", r"^</script",
-            r"^<body", r"^<div", r"^<span", r"^<p", r"^<h[1-6]", r"^<br",
-            r"^<footer", r"^<section", r"^<article", r"^<form", r"^<input",
+            r"^<body", r"^<div", r"^<span", r"^<p", r"^<h[1-6]", r"^<br", r"^<footer", r"^<section",
+            r"^<article", r"^<form", r"^<input",
             r"^</?(html|head|body|div|p|h[1-6]|section|footer|form|input|label|title|meta|link|script|style)>?",
         ]
-        if any(re.match(pattern, line) for pattern in IGNORED_PATTERNS):
+        if any(re.match(p, line) for p in IGNORED_HTML_PATTERNS):
             return True
 
-        # Tambahan: abaikan baris teks biasa tanpa simbol pemrograman atau pola mencurigakan
+        # Deteksi teks biasa di HTML
         if (
-            not re.search(r"[;{}()=<>]", line) and  # tidak ada simbol kode
-            not re.search(r"(script|alert|onerror|onload|eval|document\.|window\.)", line) and  # tidak ada JS/injection
-            len(line) < 200  # batasi panjang baris
+            not re.search(r"[;{}()=<>]", line) and
+            not re.search(r"(script|alert|onerror|onload|eval|document\.|window\.)", line) and
+            len(line) < 200
         ):
             return True
 
+    # Deteksi teks natural biasa (bukan kode) di semua jenis file
+    is_natural_text = (
+        not re.search(r"[;{}()=<>\"']", line) and
+        not re.search(r"(script|alert|onerror|onload|eval|document\.|window\.)", line) and
+        len(line.split()) > 5 and
+        len(re.findall(r"\w+", line)) > 5 and
+        line[0].isalpha() and line[-1] in ".?!"
+    )
+    if is_natural_text:
+        return True
+
     return False
+
 
 
 def format_detailed_result(filepath, line_num, result, code):
