@@ -90,4 +90,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: codebert-security-report
-          path: ${{ env.REPORT_FILENAME }}
+          path: ${{ steps.codebert.outputs.report_filename }}
