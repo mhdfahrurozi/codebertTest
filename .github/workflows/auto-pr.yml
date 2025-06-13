@@ -57,7 +57,10 @@ jobs:
         id: codebert
         run: |
           python codebert_analysis.py changed_files.txt
-          echo "REPORT_FILENAME=codebert-report.log" >> $GITHUB_ENV
+          echo "report_filename=codebert-report.log" >> $GITHUB_OUTPUT
+          if grep -q "✅ Tidak ditemukan kerentanan" codebert-report.log; then
+            echo "no_vuln=true" >> $GITHUB_OUTPUT
+          fi
 
       - name: Extract PR Summary
         run: |
@@ -73,9 +76,9 @@ jobs:
             --body-file pr-summary.log
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
-          
+                    
       - name: Tambahkan Label jika Aman
-        if: env.NO_VULN == 'true'
+        if: steps.codebert.outputs.no_vuln == 'true'
         run: |
           PR_NUMBER=$(gh pr view --json number -q '.number')
           gh pr edit $PR_NUMBER --add-label "safe-to-merge"
