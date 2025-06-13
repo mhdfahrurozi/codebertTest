@@ -64,7 +64,7 @@ jobs:
 
       - name: Extract PR Summary
         run: |
-          sed -n '/\[\[SUMMARY]]/,/\[\[DETAILED FINDINGS]]/p' $REPORT_FILENAME | head -n -2 > pr-summary.log
+          sed -n '/\[\[SUMMARY]]/,/\[\[DETAILED FINDINGS]]/p' ${{ steps.codebert.outputs.report_filename }} | head -n -2 > pr-summary.log
           echo "Laporan lengkap tersedia di artifact" >> pr-summary.log
 
       - name: Create Pull Request
