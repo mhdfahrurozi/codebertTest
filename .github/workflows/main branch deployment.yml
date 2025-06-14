@@ -1,5 +1,4 @@
-name: Deploy to Firebase Hosting
-
+name: Main Branch Deployment
 on:
   push:
     branches:
