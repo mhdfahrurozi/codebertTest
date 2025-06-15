@@ -25,4 +25,4 @@ jobs:
           firebase deploy --token ${{ secrets.FIREBASE_TOKEN }}
           echo ""
           echo "✅ Deploy complete!"
-          echo "🌐 Cek perubahan Web di URL : https://codebert-test-e90f8.web.app/"
+          echo "🌐 Hosting URL : https://codebert-test-e90f8.web.app/"
