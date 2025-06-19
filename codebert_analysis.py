@@ -148,7 +148,7 @@ def is_ignorable_line(line, filepath):
             r"^<!doctype", r"^<\?xml", r"^<!--", r"^-->", 
             r"^<html", r"^<head", r"^<meta", r"^<link", r"^<style", r"^<title",
             r"^<body", r"^<div", r"^<span", r"^<p", r"^<h[1-6]", r"^<br", r"^<footer", r"^<section",
-            r"^<article", r"^<form", r"^<input",
+            r"^<article",
             r"^</?(html|head|body|div|p|h[1-6]|section|footer|form|input|label|title|meta|link|script|style)>?",
         ]
         if any(re.match(p, line) for p in IGNORED_HTML_PATTERNS):
