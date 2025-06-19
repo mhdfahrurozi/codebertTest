@@ -27,7 +27,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements_autoPR.txt
+          pip install -r requirements_codesecure.txt
           
       - name: Get changed files
         run: |
