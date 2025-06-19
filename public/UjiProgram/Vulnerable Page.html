@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vulnerable Page</title>
+</head>
+<body>
+    <h1>Welcome!</h1>
+
+    <a href="/redirect.php?url=http://evil.com">Click here to go to your dashboard</a>
+
+
+    <form method="POST" action="">
+        <label for="comment">Comment:</label><br>
+        <textarea name="comment" id="comment"></textarea><br>
+        <input type="submit" value="Post Comment">
+    </form>
+    <p>Your comment: <!-- Unsafe output --></p>
+
+    <button onclick="alert(document.cookie)">Show Cookie</button>
+</body>
+</html>
