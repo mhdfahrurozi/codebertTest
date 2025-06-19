@@ -30,7 +30,7 @@ jobs:
         id: pip-cache
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements_codesecure.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
@@ -45,7 +45,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements_codesecure.txt') }}
           
       - name: Get changed files
         run: |
