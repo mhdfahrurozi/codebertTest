@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vulnerable Page</title>
+</head>
+<body>
+    <h1>Welcome!</h1>
+    <p>
+        Lorem ipsum dolor sit amet consectetur adipisicing elit. Quaerat neque ipsam culpa, possimus impedit sint dicta ad iste, fugiat voluptatum illum saepe earum tempora molestias error deleniti at et sunt.
+    </p>
+    
+    <a href="/redirect.php?url=http://evil.com">Click here to go to your dashboard</a>
+
+
+    <script>
+        // Reflected XSS jika input dicetak langsung ke JS
+        var user = location.href.split("user=")[1];
+        document.write("Welcome, " + user);
+    </script>
+
+    <button onclick="alert(document.cookie)">Show Cookie</button>
+</body>
+</html>
