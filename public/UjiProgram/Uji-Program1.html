@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vulnerable Page</title>
+</head>
+<body>
+    <h1>Welcome!</h1>
+
+   
+    <form method="GET" action="">
+        <label for="name">Enter your name:</label>
+        <input type="text" name="name" id="name">
+        <input type="submit" value="Submit">
+    </form>
+    <p>Hello, <script>document.write(decodeURIComponent(location.search.split('=')[1]))</script>!</p>
+
+ 
+    <a href="/redirect.php?url=http://evil.com">Click here to go to your dashboard</a>
+
+  
+    <form method="POST" action="">
+        <label for="comment">Comment:</label><br>
+        <textarea name="comment" id="comment"></textarea><br>
+        <input type="submit" value="Post Comment">
+    </form>
+    <p>Your comment: <!-- Unsafe output --></p>
+    <button onclick="alert(document.cookie)">Show Cookie</button>
+</body>
+</html>
