@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vulnerable Page</title>
+</head>
+<body>
+    <h1>Welcome!</h1>
+    <p>
+        Lorem ipsum dolor sit amet consectetur adipisicing elit. Quaerat neque ipsam culpa, possimus impedit sint dicta ad iste, fugiat voluptatum illum saepe earum tempora molestias error deleniti at et sunt.
+    </p>
+
+    <a href="/redirect.php?url=http://evil.com">Click here to go to your dashboard</a>
+
+
+    <script>document.write(location.hash);</script>
+
+    <input type="text" value="Hello" onfocus="alert('XSS')">
+</body>
+</html>
