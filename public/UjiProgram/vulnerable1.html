@@ -1,0 +1,15 @@
+<!DOCTYPE html>                                          
+<html>                                                   
+<body>                                                   
+
+<!-- XSS via document.write tanpa sanitasi -->
+<script>                                                 
+  const user = new URLSearchParams(location.search).get("user"); 
+  document.write("Hi, " + user);                         
+</script>                                                
+
+<!-- Information Exposure -->
+<p>Build: 2024.04-debug</p>                              
+
+</body>                                                  
+</html>                                                  
