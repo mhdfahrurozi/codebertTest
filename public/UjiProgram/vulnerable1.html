@@ -1,0 +1,22 @@
+<!DOCTYPE html>                                      
+<html>                                               
+<head>                                               
+    <title>Test Page</title>                         
+</head>                                              
+<body>                                               
+
+<!-- Reflected XSS via URL param -->
+<script>                                             
+    const name = new URLSearchParams(location.search).get("name");  
+    document.write("Hello " + name);                 
+</script>                                            
+
+<!-- Information Exposure -->
+<p>Admin email: admin@internal.company.local</p>     
+<p>Debug Mode: Enabled</p>                           
+
+<!-- Clickjacking: iframe tanpa header proteksi -->
+<iframe src="http://example.com"></iframe>          
+
+</body>                                              
+</html>                                              
