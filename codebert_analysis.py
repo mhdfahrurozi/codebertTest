@@ -125,13 +125,27 @@ def analyze_line(code, model, model_config, line_num):  # Added line_num paramet
     severity = model_config['inv_severity_map'].get(sev_idx, "Unknown")
     vulnerability = model_config['inv_vuln_map'].get(vul_idx, "Unknown")
 
+   # Tambahkan pengecualian untuk false positive
     if severity.lower() != "none":
+        if vulnerability == "Information Exposure" and is_safe_information_exposure(code):
+            return None  # lewati baris yang tidak berbahaya
         return {
-            'line': line_num,  # Use passed line_num
+            'line': line_num,
             'severity': severity,
             'vulnerability': vulnerability
         }
     return None
+
+def is_safe_information_exposure(code):
+    safe_patterns = [
+        r"^\s*(const|let|var)\s+\w+\s*=\s*\{",               # Deklarasi objek kosong
+        r"^\s*\w+\s*:\s*['\"0-9a-zA-Z_\-\.]+",                # Key-value aman (e.g., appearance: "light")
+        r"^\s*\};?$",                                         # Penutup objek
+        r"^\s*return\s+\{",                                   # return object
+        r"^\s*\}",                                            # penutup blok kode / objek
+        r"^\s*(const|let|var)\s+\w+\s*=\s*['\"0-9a-zA-Z_\-\.]+;?$",  # assignment sederhana string
+    ]
+    return any(re.match(pattern, code.strip()) for pattern in safe_patterns)
 
 
 def is_ignorable_line(line, filepath):
