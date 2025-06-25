@@ -91,7 +91,7 @@ def analyze_file(filepath, model, model_config):
     file_results = []
     for line_num, line in enumerate(lines, 1):  # Start from line 1
         code = line.strip()
-         if "<style" in code.lower():
+        if "<style" in code.lower():
             in_style_block = True
         if "</style>" in code.lower():
             in_style_block = False
