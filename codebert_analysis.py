@@ -138,14 +138,20 @@ def analyze_line(code, model, model_config, line_num):  # Added line_num paramet
 
 def is_safe_information_exposure(code):
     safe_patterns = [
-        r"^\s*(const|let|var)\s+\w+\s*=\s*\{",               # Deklarasi objek kosong
-        r"^\s*\w+\s*:\s*['\"0-9a-zA-Z_\-\.]+",                # Key-value aman (e.g., appearance: "light")
-        r"^\s*\};?$",                                         # Penutup objek
+        r"^\s*(const|let|var)\s+\w+\s*=\s*\{",               # objek
+        r"^\s*\w+\s*:\s*['\"0-9a-zA-Z_\-\.]+",                # key-value
+        r"^\s*\};?$",                                         # penutup objek
         r"^\s*return\s+\{",                                   # return object
-        r"^\s*\}",                                            # penutup blok kode / objek
-        r"^\s*(const|let|var)\s+\w+\s*=\s*['\"0-9a-zA-Z_\-\.]+;?$",  # assignment sederhana string
+        r"^\s*\}",                                            # penutup
+        r"^\s*(const|let|var)\s+\w+\s*=\s*['\"0-9a-zA-Z_\-\.]+;?$",  # assignment
+        r"^\s*function\s+\w+\s*\(",                           # definisi fungsi
+        r"^\s*return\s+[\w\s\!\&\|]+;?",                      # return boolean
+        r"^\s*const\s+\w+\s*=\s*\[.*\];?",                    # array
+        r"^\s*const\s+\w+\s*=\s*typeof\s+\w+",                # typeof check
+        r"^\s*\w+\.includes\(.+\)",                           # includes validation
     ]
     return any(re.match(pattern, code.strip()) for pattern in safe_patterns)
+
 
 
 def is_ignorable_line(line, filepath):
