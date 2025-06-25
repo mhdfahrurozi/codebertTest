@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome Profile</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #34495e;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        main {
+            max-width: 800px;
+            margin: 40px auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        footer {
+            text-align: center;
+            padding: 15px;
+            font-size: 14px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Welcome to Your Profile</h1>
+    </header>
+
+    <main>
+        <p>This page shows your personalized greeting based on your name provided in the URL.</p>
+        <p>Example: <code>?name=John</code></p>
+
+        <!-- ⚠️ Kerentanan XSS: mengambil input URL langsung ke innerHTML -->
+        <script>
+            const name1 = new URLSearchParams(location.search).get("name");
+            document.body.innerHTML += `<h2>Hello, ${name1}</h2>`;
+        </script>
+        
+        <p>Thank you for visiting your profile page.</p>
+        <p>Need help? Contact our support team via the contact section below.</p>
+    </main>
+
+    <footer>
+        &copy; 2025 MySecureApp - All rights reserved.
+    </footer>
+</body>
+</html>

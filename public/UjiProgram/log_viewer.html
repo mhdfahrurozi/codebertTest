@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Log Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: auto;
+        }
+        h1 {
+            color: #333;
+        }
+        p {
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to the Admin Log Viewer</h1>
+        <p>This page displays the contents of system logs for administrator review.</p>
+
+        <!-- ⚠️ POTENTIAL VULNERABILITY (LFI / File Disclosure) -->
+        <object data="/var/log/system.log" type="text/plain" width="600" height="400"></object>
+        
+        <p>Note: Only accessible to authorized administrators.</p>
+    </div>
+</body>
+</html>
