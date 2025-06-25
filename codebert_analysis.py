@@ -88,6 +88,8 @@ def analyze_file(filepath, model, model_config):
         logger.detailed.append(f"⚠️ Gagal membaca {filepath}: {e}")
         return
 
+    in_style_block = False
+
     file_results = []
     for line_num, line in enumerate(lines, 1):  # Start from line 1
         code = line.strip()
