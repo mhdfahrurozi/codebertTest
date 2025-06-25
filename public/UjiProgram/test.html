@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Page</title>
+</head>
+<body>
+    <h1>User Info</h1>
+    <div id="display"></div>
+
+    <h2>System Debug Page</h2>
+    <!-- Developer iframe untuk memuat file env, seharusnya tidak ditampilkan -->
+    <iframe src="/root/secrets.env"></iframe> <!-- Vulnerable Line -->
+
+    <!-- Menampilkan file lokal secara langsung -->
+    <object data="/var/log/system.log" type="text/plain" width="600" height="400"></object>
+    <!-- val_generalized.jsonl baris ke-1 -->
+
+      <!-- ⚠️ Menampilkan file log lokal secara langsung -->
+    <embed src="/var/debug/output.log" width="800" height="400">
+        <!-- val_generalized.jsonl baris ke-1 -->
+
+    <!-- Form tanpa token CSRF -->
+    <form action="https://example.com/change-email" method="POST">
+    <input type="hidden" name="email" value="attacker@example.com" />
+    <input type="submit" value="Update Email">
+    </form>
+
+
+    <script>
+        // Mengambil parameter dari URL: ?user=<input>
+        const params = new URLSearchParams(window.location.search);
+        const name = params.get("user");
+        document.getElementById("display").innerHTML = "<b>Welcome, " + name + "</b>"; // 🧨 InnerHTML tanpa sanitasi
+    </script>
+
+    <script>
+        // ⚠️ Menyisipkan input langsung tanpa encoding
+        const params1 = new URLSearchParams(window.location.search);
+        const q = params1.get("q");
+        document.write(`<p>${q}</p>`); // XSS jika q = <script>alert(1)</script>
+    </script>
+    <!-- test_generalized.jsonl baris ke-1 (sisipan input HTML) -->
+
+    <script>
+        const name1 = new URLSearchParams(location.search).get("name");
+        document.body.innerHTML += `<h2>Hello, ${name1}</h2>`;
+    </script>
+    <!-- Baris 15, test.jsonl -->
+
+
+</body>
+</html>
