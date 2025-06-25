@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Detail Info</title>
+</head>
+<body>
+    <h1>Welcome to the User Dashboard</h1>
+
+    <form id="userForm">
+        <label for="jsonInput">User Data (JSON):</label><br>
+        <textarea id="jsonInput" name="jsonInput" rows="5" cols="50">
+
+        </textarea><br>
+        <button type="button" onclick="applyUserData()">Submit</button>
+    </form>
+
+    <hr>
+
+    <div>
+        <h2>Auto Redirect</h2>
+        <p>You will be redirected based on your query string...</p>
+    </div>
+
+    <div>
+        <h2>Debug Output</h2>
+        <pre id="output"></pre>
+    </div>
+
+    <script>
+        // =========================
+        // [1] Open Redirect (Valid from Dataset)
+        // =========================
+        let next = new URLSearchParams(window.location.search).get("next");
+        if (next) {
+            window.location.href = next; // <-- Vulnerable line (open redirect)
+        }
+
+        // =========================
+        // [2] Prototype Pollution (Valid from Dataset)
+        // =========================
+        function applyUserData() {
+            const config = { safe: true };
+            try {
+                const input = document.getElementById("jsonInput").value;
+                const userInput = JSON.parse(input);
+                Object.assign(config, userInput); // <-- Vulnerable line
+                document.getElementById("output").innerText = JSON.stringify(config, null, 2);
+            } catch (e) {
+                document.getElementById("output").innerText = "Invalid JSON input!";
+            }
+        }
+    </script>
+</body>
+</html>
