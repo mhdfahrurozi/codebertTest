@@ -91,7 +91,13 @@ def analyze_file(filepath, model, model_config):
     file_results = []
     for line_num, line in enumerate(lines, 1):  # Start from line 1
         code = line.strip()
-        if not code or is_ignorable_line(code, filepath):
+         if "<style" in code.lower():
+            in_style_block = True
+        if "</style>" in code.lower():
+            in_style_block = False
+            continue  # skip the closing tag line
+
+        if not code or is_ignorable_line(code, filepath) or in_style_block:
             continue
 
         result = analyze_line(code, model, model_config, line_num)  # Pass line_num
