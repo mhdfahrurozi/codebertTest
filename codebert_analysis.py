@@ -150,6 +150,9 @@ def is_ignorable_line(line, filepath):
     looks_like_html = bool(re.match(r"^\s*</?\w+", line)) or bool(re.search(r"</?\w+>", line))
 
     if filepath.endswith(('.html', '.xml')) or looks_like_html:
+        if line.strip() in ("<script>", "</script>"):
+            return True
+            
         IGNORED_HTML_PATTERNS = [
             r"^<!doctype", r"^<\?xml", r"^<!--", r"^-->", 
             r"^<html", r"^<head", r"^<meta", r"^<link", r"^<style", r"^<title",
